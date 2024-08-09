@@ -14,12 +14,6 @@ int main(int argc, char **argv)
 	int fdUart;	
 	int nread;
 	unsigned char recBuff[RECEIVE_BUFFER_SIZE];
-	unsigned char cmdBuff[RECEIVE_BUFFER_SIZE];		
-	unsigned char receiveBuffer[RECEIVE_BUFFER_SIZE];
-	int receiveIndex = 0;
-	int cmdSize;
-	NaviStr naviInfo;
-	BLE_COMMANDS cmd;
 	
 	if( argc != 2 )
 	{
@@ -42,58 +36,23 @@ int main(int argc, char **argv)
 	
 	while (KeepGoing)
 	{
+		memset(recBuff, 0, RECEIVE_BUFFER_SIZE);
 		while((nread = read(fdUart, recBuff, 512))>0)
 		{
 			printf("Received %d bytes\r\n", nread);
-			
-			if( nread+receiveIndex >= RECEIVE_BUFFER_SIZE )
+			for(int i=0; i<nread; i++)
 			{
-				printf("receiver buffer overflow. it must be something wrong.\r\n");
-				// TODO...
-				receiveIndex = 0;
-			} 
-
-			memcpy(receiveBuffer+receiveIndex, recBuff, nread); 
-			receiveIndex += nread;
-			
-			#if 0
-			// for debug test
-			for(int i=0; i<receiveIndex; i++)
-			{
-				printf("%02X, ", receiveBuffer[i]);
+				printf("0x%02X", recBuff[i]);
+				if( recBuff[i] >= 0x20 && recBuff[i] < 127 )
+				{
+					printf(" (%c), ", recBuff[i]);
+				}
+				else
+				{
+					printf(", ");
+				}
 			}
 			printf("\r\n");
-			
-			receiveIndex = 0;
-			#endif
-			
-			cmdSize = bleCheckCommand(recBuff, receiveIndex, cmdBuff);
-			
-			if( cmdSize > 0 )
-			{
-				#if 1
-				// for debug test
-				for(int i=0; i<cmdSize; i++)
-				{
-					printf("%02X, ", cmdBuff[i]);
-				}
-				printf("\r\n");
-				#endif
-				
-				cmd = bleGetCommand(cmdBuff);
-				printf("Command=%d\r\n", cmd);
-				switch( cmd )
-				{
-					case COMMAND_NAVI_DIRECTION:
-						bleNaviReconstruct(cmdBuff, &naviInfo);
-						printf("distance=%d, direction=%d\r\n", naviInfo.distance, naviInfo.direction);
-						break;
-						
-					default:
-						printf("Uknown command (%d)\r\n", cmd);
-						break;
-				}
-			}
 		}
 	}
 
@@ -103,4 +62,3 @@ int main(int argc, char **argv)
 }
 
 // end of file
-
